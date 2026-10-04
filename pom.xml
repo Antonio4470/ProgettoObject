@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- ══════════════════════════════════════════════════════
+       Coordinate del progetto
+  ══════════════════════════════════════════════════════ -->
+  <groupId>todo</groupId>
+  <artifactId>todo-manager</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <name>ToDo Manager</name>
+  <description>
+    Applicazione desktop Java/Swing per la gestione di attività personali
+    ispirata a Trello, con persistenza su PostgreSQL.
+  </description>
+
+  <!-- ══════════════════════════════════════════════════════
+       Proprietà globali
+  ══════════════════════════════════════════════════════ -->
+  <properties>
+
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Versioni dipendenze -->
+    <postgresql.version>42.7.3</postgresql.version>
+    <junit.version>5.10.2</junit.version>
+    <mockito.version>5.11.0</mockito.version>
+
+    <!-- Versioni plugin -->
+    <plugin.compiler.version>3.8.1</plugin.compiler.version>
+    <plugin.jar.version>3.3.0</plugin.jar.version>
+    <plugin.surefire.version>3.2.5</plugin.surefire.version>
+    <plugin.javadoc.version>3.6.3</plugin.javadoc.version>
+    <plugin.site.version>4.0.0-M13</plugin.site.version>
+    <plugin.shade.version>3.2.4</plugin.shade.version>
+    <plugin.resources.version>3.3.1</plugin.resources.version>
+
+    <!-- Classe principale -->
+    <main.class>todo.MainTest</main.class>
+  </properties>
+
+  <!-- ══════════════════════════════════════════════════════
+       Dipendenze
+  ══════════════════════════════════════════════════════ -->
+  <dependencies>
+<dependency>
+    <groupId>com.jgoodies</groupId>
+    <artifactId>jgoodies-forms</artifactId>
+    <version>1.9.0</version>
+</dependency>
+
+    <!-- Driver JDBC PostgreSQL -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
+    </dependency>
+
+    <!-- JUnit 5 (Jupiter) — scope test -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Mockito per il mocking dei DAO nei test unitari -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <!-- ══════════════════════════════════════════════════════
+       Build
+  ══════════════════════════════════════════════════════ -->
+  <build>
+
+    <!-- Layout standard Maven; sorgenti già in src/main/java -->
+    <sourceDirectory>src/main/java</sourceDirectory>
+    <testSourceDirectory>src/test/java</testSourceDirectory>
+
+    <plugins>
+
+      <!-- ── 1. Compiler plugin ───────────────────────────
+           aggiunge -parameters per
+           nomi dei parametri a runtime (utile per Javadoc)  -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${plugin.compiler.version}</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <encoding>UTF-8</encoding>
+          <compilerArgs>
+            <arg>-parameters</arg>
+            <!-- Tratta i warning come errori (rimuovere in sviluppo) -->
+            <!-- <arg>-Werror</arg> -->
+          </compilerArgs>
+          <showWarnings>true</showWarnings>
+          <showDeprecation>true</showDeprecation>
+        </configuration>
+      </plugin>
+
+      <!-- ── 2. Resources plugin ──────────────────────────
+           Copia le risorse (db.properties, icone, ecc.)
+           in target/classes con filtering per sostituire
+           ${...} nei file .properties con i valori del POM -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${plugin.resources.version}</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <resources>
+            <resource>
+              <directory>src/main/resources</directory>
+              <filtering>true</filtering>
+            </resource>
+          </resources>
+        </configuration>
+      </plugin>
+
+      <!-- ── 3. Surefire plugin ───────────────────────────
+           Esegue i test JUnit 5 durante la fase "test".
+           Genera report XML in target/surefire-reports.
+           Con -DskipTests=true si saltano i test.          -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${plugin.surefire.version}</version>
+        <configuration>
+          <!-- JUnit 5 richiede il provider Jupiter -->
+          <useModulePath>false</useModulePath>
+          <!-- Report leggibili anche in console -->
+          <useFile>false</useFile>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+          </includes>
+          <!-- Variabili di sistema per i test (sovrascrivibili da CLI) -->
+          <systemPropertyVariables>
+            <db.url>jdbc:postgresql://localhost:5432/todomanager</db.url>
+            <db.user>postgres</db.user>
+            <db.password>postgres</db.password>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <!-- ── 4. JAR plugin ────────────────────────────────
+           Produce il JAR "thin" (senza dipendenze).
+           Il Manifest include la Main-Class per il lancio
+           con -cp, e le info di build per tracciabilità.   -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${plugin.jar.version}</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${main.class}</mainClass>
+              <addClasspath>true</addClasspath>
+              <!-- Le dipendenze vengono cercate nella sotto-cartella lib/ -->
+              <classpathPrefix>lib/</classpathPrefix>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+            <manifestEntries>
+              <Built-By>ToDo Manager Build</Built-By>
+              <Build-Version>${project.version}</Build-Version>
+            </manifestEntries>
+          </archive>
+          <outputDirectory>${project.build.directory}</outputDirectory>
+        </configuration>
+      </plugin>
+
+      <!-- ── 5. Shade plugin ──────────────────────────────
+           Produce il fat-JAR "uber" con tutte le dipendenze
+           incluse: todo-manager-1.0.0-uber.jar
+           Questo è il manufatto finale eseguibile con
+           java -jar, senza bisogno di una lib/ separata.   -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${plugin.shade.version}</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <finalName>${project.artifactId}-${project.version}-uber</finalName>
+              <transformers>
+                <!-- Sovrascrive il manifest con la Main-Class corretta -->
+                <transformer implementation=
+                  "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>${main.class}</mainClass>
+                </transformer>
+                <!-- Fonde i file META-INF/services (ServiceLoader) -->
+                <transformer implementation=
+                  "org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <!-- Aggiunge una nota nel manifest -->
+                <transformer implementation=
+                  "org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+              </transformers>
+              <!-- Filtra le firme digitali dei JAR inclusi
+                   (evita SecurityException a runtime)       -->
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <!-- Non sostituisce il JAR thin principale -->
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ── 6. Javadoc plugin ────────────────────────────
+           Genera la documentazione HTML in target/site/apidocs.
+           Viene eseguita con: mvn javadoc:javadoc
+           oppure nella fase: mvn site                      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${plugin.javadoc.version}</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <docencoding>UTF-8</docencoding>
+          <charset>UTF-8</charset>
+          <author>true</author>
+          <version>true</version>
+          <use>true</use>
+          <windowtitle>ToDo Manager ${project.version} API</windowtitle>
+          <doctitle>
+            &lt;h1&gt;ToDo Manager ${project.version}&lt;/h1&gt;
+            &lt;p&gt;Documentazione API del sistema di gestione attività.&lt;/p&gt;
+          </doctitle>
+          <bottom>
+            &lt;i&gt;Copyright 2024 — ToDo Manager — Generato con Maven Javadoc Plugin&lt;/i&gt;
+          </bottom>
+          <!-- Raggruppa i package nella barra di navigazione -->
+          <groups>
+            <group>
+              <title>Model — Entità di dominio</title>
+              <packages>todo.model</packages>
+            </group>
+            <group>
+              <title>DAO — Interfacce di accesso ai dati</title>
+              <packages>todo.dao</packages>
+            </group>
+            <group>
+              <title>DAO Impl — Implementazioni PostgreSQL</title>
+              <packages>todo.dao.impl</packages>
+            </group>
+            <group>
+              <title>Database — Connessione</title>
+              <packages>todo.database</packages>
+            </group>
+            <group>
+              <title>Controller — Logica applicativa</title>
+              <packages>todo.controller</packages>
+            </group>
+          </groups>
+          
+          <!-- Non interrompe la build per warning Javadoc minori -->
+          <failOnError>false</failOnError>
+          <quiet>false</quiet>
+        </configuration>
+        <!-- Allega il JAR dei sorgenti e del Javadoc al deploy -->
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ── 7. Site plugin ───────────────────────────────
+           Genera il sito completo del progetto in target/site,
+           inclusi: Javadoc, report Surefire, dipendenze ecc.
+           Comando: mvn site                                -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>${plugin.site.version}</version>
+        <configuration>
+          <outputDirectory>${project.build.directory}/site</outputDirectory>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+  <!-- ══════════════════════════════════════════════════════
+       Reporting — integrato nel sito Maven (mvn site)
+  ══════════════════════════════════════════════════════ -->
+  <reporting>
+    <plugins>
+
+      <!-- Javadoc nel sito -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${plugin.javadoc.version}</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>javadoc</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+
+      <!-- Report dei test Surefire nel sito -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>${plugin.surefire.version}</version>
+      </plugin>
+
+    </plugins>
+  </reporting>
+
+  <!-- ══════════════════════════════════════════════════════
+       Profili
+  ══════════════════════════════════════════════════════ -->
+  <profiles>
+
+    <!-- Profilo "dev": salta i test, utile durante lo sviluppo
+         Attivazione: mvn package -P dev                   -->
+    <profile>
+      <id>dev</id>
+      <properties>
+        <maven.test.skip>true</maven.test.skip>
+      </properties>
+    </profile>
+
+    <!-- Profilo "prod": esegue tutto incluso Javadoc e sito
+         Attivazione: mvn install -P prod                  -->
+    <profile>
+      <id>prod</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${plugin.javadoc.version}</version>
+            <executions>
+              <execution>
+                <id>generate-javadoc</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>javadoc</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+  </profiles>
+
+</project>
